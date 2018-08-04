@@ -11,6 +11,7 @@ from gensim.models import ldamulticore
 from numpy import log10
 from multiprocessing.pool import Pool
 import multiprocessing
+from daguanNlp.utils import extract_docs
 
 # train_path = 'd:/VM_Share/work/codeSpace/nlp/daguan/new_data/train_set.csv'
 # test_path = 'd:/VM_Share/work/codeSpace/nlp/daguan/new_data/test_set.csv'
@@ -18,24 +19,6 @@ train_path = 'train_set_sample.csv'
 test_path = 'test_set_sample.csv'
 train_out_path = 'trainT.csv'
 test_out_path = 'testT.csv'
-
-def extract_docs(texts, isTrain = True):
-    header = []
-    docs = []
-    y = []
-    with open(texts) as f:
-        for ind, line in enumerate(f):
-            if ind == 0:
-                header = line.strip().split(',')
-                continue
-            line_tmp = line.strip().split(',')
-            docs.append(line_tmp[2])
-            if isTrain:
-                y.append(line_tmp[-1])
-    if isTrain:            
-        return docs, y
-    else:
-        return docs
 
 train_docs, train_y = extract_docs(train_path)
 test_docs = extract_docs(train_path, False)
@@ -45,6 +28,7 @@ cntVector = CountVectorizer()
 global cntTf
 cntTf = cntVector.fit_transform(train_docs + test_docs)
 
+pdb.set_trace()
 def outPutFeature(data, filePath, Y = None, isTrain = True):
     with open(filePath, 'w') as f:
         if isTrain:
