@@ -28,7 +28,6 @@ cntVector = CountVectorizer()
 global cntTf
 cntTf = cntVector.fit_transform(train_docs + test_docs)
 
-pdb.set_trace()
 def outPutFeature(data, filePath, Y = None, isTrain = True):
     with open(filePath, 'w') as f:
         if isTrain:
