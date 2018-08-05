@@ -49,18 +49,11 @@ def getTextCount(voc, docs):
 def getDocCount(id_doc_voc):
     with open('stat.info', 'a+') as f:
         f.write("统计第 %d 篇文章的词频\n" % (id_doc_voc[0]+1))
-    word_cnt = [0 for _ in id_doc_voc[2]]
+    word_cnt_dict = {key: 0 for key in id_doc_voc[2]}
     doc_split = id_doc_voc[1].split(' ')
-    occure = False
-    for ind, v in enumerate(id_doc_voc[2]):
-        for word in doc_split:
-            if word == v:
-                word_cnt[ind] += 1
-                occure = True
-        if occure:
-            occure = False
-            doc_split.remove(v)
-    return word_cnt
+    for word in doc_split:
+        word_cnt_dict[word] += 1
+    return [word_cnt_dict[key] for key in id_doc_voc[2]]
 
 def setVoc(train_class_set, test_words_set):
     return sorted(train_class_set.union(test_words_set))
@@ -83,7 +76,8 @@ if __name__ == '__main__':
     train_class_set = set(train_y)
     
     print("train_set has %d words in total, and has %d uniq words" % (len(train_words), len(train_words_set)))
-    print("train_set has %s class" % len(train_class_set))
+    print("train_set has %s class" % len(train_class_set)); del train_class_set
+    print(' '.join(train_y))
     
     test_words = extract_word_in_docs(test_docs)
     test_words_set = set(test_words)
@@ -92,7 +86,7 @@ if __name__ == '__main__':
 
     isTestHasDifferentWordsInTrain(train_words_set, test_words_set)
     
-    voc = setVoc(train_class_set, test_words_set)
+    voc = setVoc(train_words_set, test_words_set)
     
 #     pdb.set_trace()
 #     print('start train doc word count-----------------------')
