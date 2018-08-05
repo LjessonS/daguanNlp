@@ -1,6 +1,6 @@
 # -*-coding:utf-8-*-
 '''
-Created on 2018年8月4日 下午7:43:12
+Created on 2018骞�8鏈�4鏃� 涓嬪崍7:43:12
 
 @author: liusheng1
 '''
@@ -67,7 +67,7 @@ def setVoc(train_class_set, test_words_set):
 
 if __name__ == '__main__':
 #     train_path = r'D:\VM_Share\data\home\new_data'
-    if 1:
+    if 0:
         train_path = 'train_set.csv'
         test_path = 'test_set.csv'
     else:
@@ -130,14 +130,14 @@ if __name__ == '__main__':
     with open('train_doc_word_cnt.txt', 'w') as f:
         f.write(' '.join(voc) + '\n')
         for doc_vec, label in zip(train_doc_word_cnt, train_y):
-            f.write(' '.join(doc_vec) + ' ' + label + '\n')
+            f.write(' '.join(str(cnt) for cnt in doc_vec) + ' ' + label + '\n')
     
     print("output test doc word count-----------------------")
     
     with open('test_doc_word_cnt.txt', 'w') as f:
         f.write(' '.join(voc) + '\n')
         for doc_vec in test_doc_word_cnt:
-            f.write(' '.join(doc_vec) + '\n') 
+            f.write(' '.join(str(cnt) for cnt in doc_vec) + '\n')
     
     
     
