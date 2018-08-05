@@ -7,11 +7,10 @@ Created on 2018��7��28��
 import pdb
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
-from gensim.models import ldamulticore
 from numpy import log10
 from multiprocessing.pool import Pool
 import multiprocessing
-from daguanNlp.utils import extract_docs
+from utils import extract_docs
 
 # train_path = 'd:/VM_Share/work/codeSpace/nlp/daguan/new_data/train_set.csv'
 # test_path = 'd:/VM_Share/work/codeSpace/nlp/daguan/new_data/test_set.csv'
@@ -28,7 +27,6 @@ cntVector = CountVectorizer()
 global cntTf
 cntTf = cntVector.fit_transform(train_docs + test_docs)
 
-pdb.set_trace()
 def outPutFeature(data, filePath, Y = None, isTrain = True):
     with open(filePath, 'w') as f:
         if isTrain:
