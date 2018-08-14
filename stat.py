@@ -135,9 +135,9 @@ if __name__ == '__main__':
     print("output test doc word count-----------------------")
     
     with open('test_doc_word_cnt.txt', 'w') as f:
-        f.write(' '.join(voc) + '\n')
+        f.write(' '.join(voc) + '\n')                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
         for doc_vec in test_doc_word_cnt:
-            f.write(' '.join(str(cnt) for cnt in doc_ve) + '\n')
+            f.write(' '.join(str(cnt) for cnt in doc_vec) + '\n')
     
     
     
