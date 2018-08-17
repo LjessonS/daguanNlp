@@ -5,26 +5,11 @@ Created on 2018骞�8鏈�4鏃� 涓嬪崍7:43:12
 @author: liusheng1
 '''
 import pdb
-from utils import extract_docs
+from utils import extract_docs, setVoc, extract_word_in_docs, isTestHasDifferentWordsInTrain
 import multiprocessing
 from multiprocessing.pool import Pool
 import os
 
-def extract_word_in_docs(docs):
-    words = []
-    for doc in docs:
-        wordLst = doc.split(' ')
-        words += wordLst
-        
-    return words
-
-def isTestHasDifferentWordsInTrain(train_words_set, test_words_set):
-    cnt = 0
-    for word in test_words_set:
-        if word not in train_words_set:
-            cnt += 1
-#             print("test_set has %d words and word %s is not in train_set" % (cnt, word))
-    print("test_set has %d words not in train_set" % cnt)
 
 def getTextCount(voc, docs):
     doc_word_cnt = []
@@ -56,15 +41,20 @@ def getDocCount(doc):
             word_cnt_dict[word] += 1
     return word_cnt_dict
 
-def setVoc(train_class_set, test_words_set):
-    return sorted(train_class_set.union(test_words_set))
 
-if 1:
+debug = 4
+if debug == 1:
     train_path = 'train_set.csv'
     test_path = 'test_set.csv'
-else:
+elif debug == 0:
     train_path = 'train_set_sample.csv'
     test_path = 'test_set_sample.csv'
+elif debug == 3:
+    train_path = r'D:\VM_Share\work\codeSpace\nlp\daguan\new_data\train_set.csv'
+    test_path = r'D:\VM_Share\work\codeSpace\nlp\daguan\new_data\test_set.csv'
+else:
+    train_path = r'D:\VM_Share\data\home\new_data\train_set.csv'
+    test_path = r'D:\VM_Share\data\home\new_data\test_set.csv'
 
 train_docs, train_y = extract_docs(train_path)
 test_docs = extract_docs(test_path, isTrain = False)
@@ -84,7 +74,13 @@ print("test has %d words in total, and has %d uniq words" % (len(test_words), le
 
 isTestHasDifferentWordsInTrain(train_words_set, test_words_set)
 
-voc = setVoc(train_words_set, test_words_set); del train_words_set, test_words_set
+intersection_set = train_words.intersection(test_words)
+print("train and test has %d same words in total" % len(intersection_set))
+
+
+
+
+# voc = setVoc(train_words_set, test_words_set); del train_words_set, test_words_set
 
 def getDocCountToOutput(doc_dict):
     line_dict = {v: 0 for v in voc}
@@ -103,76 +99,76 @@ if __name__ == '__main__':
 #     
 #     test_doc_word_cnt = getTextCount(voc, test_docs)
     
-    
+    pass
     #-------------------multiProcess------------------------
-    if os.path.exists('stat.info'):
-        os.remove('stat.info')
-    print('start train doc word count-----------------------')
-    cpus = multiprocessing.cpu_count()
-    pool = Pool(cpus-1)
-    train_doc_word_cnt = pool.map(getDocCount, train_docs)
-    pool.close()
-    pool.join()
-    del train_docs
-    
-    print('start test doc word count-----------------------')
-    cpus = multiprocessing.cpu_count()
-    pool = Pool(cpus-1)
-    test_doc_word_cnt = pool.map(getDocCount, test_docs)
-    pool.close()
-    pool.join()
-    del test_docs
-    
-    batch_size = 16
-    print("Start output train doc word count-----------------------")
-    with open('train_doc_word_cnt.txt', 'w') as f:
-        f.write(' '.join(voc) + ' label' + '\n')
-        
-        ind = 0
-        fac, residue = len(train_doc_word_cnt) // batch_size, len(train_doc_word_cnt) - batch_size * len(train_doc_word_cnt) // batch_size
-        for epoch in range(fac):
-            if epoch != fac:
-                bat_begin, bat_end = epoch * batch_size, (epoch + 1) * batch_size
-            else:
-                bat_begin, bat_end = epoch * fac, epoch * fac + residue
-            
-            cpus = multiprocessing.cpu_count()
-            pool = Pool(8)
-            train_doc_dict_lst = pool.map(getDocCountToOutput, train_doc_word_cnt[bat_begin:bat_end])
-            pool.close()
-            pool.join()
-            
-            for doc_line_dict, label in zip(train_doc_dict_lst, train_y[bat_begin:bat_end]):
-                print('输出了 %d 行\n' % ind)
-                ind += 1
-                f.write(' '.join(str(doc_line_dict[v]) for v in voc) + ' ' + label + '\n')
-                
-            del train_doc_dict_lst
-    del train_doc_word_cnt, train_y
-    
-    print("output test doc word count-----------------------")
-    
-    with open('test_doc_word_cnt.txt', 'w') as f:
-        ind = 0
-        f.write(' '.join(voc) + '\n')
-        
-        fac, residue = len(test_doc_word_cnt) // batch_size, len(test_doc_word_cnt) - batch_size * len(test_doc_word_cnt) // batch_size
-        for epoch in range(fac):
-            if epoch != fac:
-                bat_begin, bat_end = epoch * batch_size, (epoch + 1) * batch_size
-            else:
-                bat_begin, bat_end = epoch * fac, epoch * fac + residue
-            
-            cpus = multiprocessing.cpu_count()
-            pool = Pool(8)
-            test_doc_dict_lst = pool.map(getDocCountToOutput, test_doc_word_cnt[bat_begin:bat_end])
-            pool.close()
-            pool.join()
-        
-            for doc_line_dict in test_doc_dict_lst:
-                print('输出了 %d 行\n' % ind)
-                ind += 1
-                f.write(' '.join(str(doc_line_dict[v]) for v in voc) + '\n')
-    
-            del test_doc_dict_lst
+#     if os.path.exists('stat.info'):
+#         os.remove('stat.info')
+#     print('start train doc word count-----------------------')
+#     cpus = multiprocessing.cpu_count()
+#     pool = Pool(cpus-1)
+#     train_doc_word_cnt = pool.map(getDocCount, train_docs)
+#     pool.close()
+#     pool.join()
+#     del train_docs
+#     
+#     print('start test doc word count-----------------------')
+#     cpus = multiprocessing.cpu_count()
+#     pool = Pool(cpus-1)
+#     test_doc_word_cnt = pool.map(getDocCount, test_docs)
+#     pool.close()
+#     pool.join()
+#     del test_docs
+#     
+#     batch_size = 16
+#     print("Start output train doc word count-----------------------")
+#     with open('train_doc_word_cnt.txt', 'w') as f:
+#         f.write(' '.join(voc) + ' label' + '\n')
+#         
+#         ind = 0
+#         fac, residue = len(train_doc_word_cnt) // batch_size, len(train_doc_word_cnt) - batch_size * len(train_doc_word_cnt) // batch_size
+#         for epoch in range(fac):
+#             if epoch != fac:
+#                 bat_begin, bat_end = epoch * batch_size, (epoch + 1) * batch_size
+#             else:
+#                 bat_begin, bat_end = epoch * fac, epoch * fac + residue
+#             
+#             cpus = multiprocessing.cpu_count()
+#             pool = Pool(8)
+#             train_doc_dict_lst = pool.map(getDocCountToOutput, train_doc_word_cnt[bat_begin:bat_end])
+#             pool.close()
+#             pool.join()
+#             
+#             for doc_line_dict, label in zip(train_doc_dict_lst, train_y[bat_begin:bat_end]):
+#                 print('输出了 %d 行\n' % ind)
+#                 ind += 1
+#                 f.write(' '.join(str(doc_line_dict[v]) for v in voc) + ' ' + label + '\n')
+#                 
+#             del train_doc_dict_lst
+#     del train_doc_word_cnt, train_y
+#     
+#     print("output test doc word count-----------------------")
+#     
+#     with open('test_doc_word_cnt.txt', 'w') as f:
+#         ind = 0
+#         f.write(' '.join(voc) + '\n')
+#         
+#         fac, residue = len(test_doc_word_cnt) // batch_size, len(test_doc_word_cnt) - batch_size * len(test_doc_word_cnt) // batch_size
+#         for epoch in range(fac):
+#             if epoch != fac:
+#                 bat_begin, bat_end = epoch * batch_size, (epoch + 1) * batch_size
+#             else:
+#                 bat_begin, bat_end = epoch * fac, epoch * fac + residue
+#             
+#             cpus = multiprocessing.cpu_count()
+#             pool = Pool(8)
+#             test_doc_dict_lst = pool.map(getDocCountToOutput, test_doc_word_cnt[bat_begin:bat_end])
+#             pool.close()
+#             pool.join()
+#         
+#             for doc_line_dict in test_doc_dict_lst:
+#                 print('输出了 %d 行\n' % ind)
+#                 ind += 1
+#                 f.write(' '.join(str(doc_line_dict[v]) for v in voc) + '\n')
+#     
+#             del test_doc_dict_lst
     
