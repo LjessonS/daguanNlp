@@ -31,6 +31,14 @@ def extract_word_in_docs(docs):
         
     return words
 
+def extract_doc_terms_in_docs(docs):
+    words = []
+    for doc in docs:
+        wordLst = doc.split(' ')
+        words.append(wordLst)
+        
+    return words
+
 def print_longest_lowest(docs):
     longest = 0
     lowest = 99999
@@ -96,13 +104,16 @@ def extractShortTextUniqWords(docs, length):
             uniq_words.extend(splitted_doc)
     return set(uniq_words)
 
-def keepUniqWordsOfShortTexts(train_path, test_path, length = 30):
+def keepUniqWordsOfShortTexts(train_path, test_path = None, onlyTrain = False, length = 30):
     train_docs, _ = extract_docs(train_path)
     train_uniqWords = extractShortTextUniqWords(train_docs, length); del train_docs
-    test_docs = extract_docs(test_path, isTrain = False)
-    test_uniqWords = extractShortTextUniqWords(test_docs, length)
     
 #     print(",".join(w for w in train_uniqWords.union(test_uniqWords)))
+    if onlyTrain:
+        return train_uniqWords
+    assert(test_path != None)
+    test_docs = extract_docs(test_path, isTrain = False)
+    test_uniqWords = extractShortTextUniqWords(test_docs, length)
     return train_uniqWords.union(test_uniqWords)
 
 def extractWords(docs):

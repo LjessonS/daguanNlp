@@ -7,6 +7,11 @@ Created on 2018年8月14日
 from utils import *
 import pdb
 import matplotlib.pyplot as plt
+from copy import deepcopy
+from sklearn.feature_extraction import DictVectorizer
+from collections import Counter, OrderedDict
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 
 def countIntersectionWordsInDocs(docs, intersection_set):
     wordCountDict = {w: 0 for w in intersection_set}
@@ -19,11 +24,18 @@ def countIntersectionWordsInDocs(docs, intersection_set):
     
     return wordCountDict
 
-
+def getTempExcludedSamples(train_path, length = 30):
+    train_docs, _ = extract_docs(train_path)
+    tempExcludedSamples = []
+    for ind, doc in enumerate(train_docs):
+        splitted_doc = doc.split(' ')
+        if len(splitted_doc) <= length:
+            tempExcludedSamples.append(ind)
+    return tempExcludedSamples
 
 
 if __name__ == '__main__':
-    debug = 4
+    debug = 1
     if debug == 1:
         train_path = 'train_set.csv'
         test_path = 'test_set.csv'
@@ -43,7 +55,6 @@ if __name__ == '__main__':
 #         getUniqWord(train_path, test_path, len_)
 #         print("---------------------------------------------------")
     
-    pdb.set_trace()
     train_docs, train_y = extract_docs(train_path)
     test_docs = extract_docs(test_path, isTrain = False)
     #     pdb.set_trace()
@@ -60,7 +71,6 @@ if __name__ == '__main__':
     
     print("test has %d words in total, and has %d uniq words" % (len(test_words), len(test_words_set)))
     
-    del train_words, test_words
     isTestHasDifferentWordsInTrain(train_words_set, test_words_set)
     
     intersection_set = train_words_set.intersection(test_words_set)
@@ -73,12 +83,37 @@ if __name__ == '__main__':
 
     shortTextsWordsSet = keepUniqWordsOfShortTexts(train_path, test_path)
     
-    pdb.set_trace()
+#     pdb.set_trace()
     intersectionWordsBetweenShortTestAndIntersectionSet = intersection_set.intersection(shortTextsWordsSet)
     print("short texts has %d uniq words in total" % len(shortTextsWordsSet))
     print("intersection words between short text and intersection set has %d words in total." % len(intersectionWordsBetweenShortTestAndIntersectionSet))
 
+    candidateFeatures = intersection_set - shortTextsWordsSet
+    tempExcludedSamples = getTempExcludedSamples(train_path)
+    train_docs_clone, train_y_clone = deepcopy(train_docs), deepcopy(train_y)
+    [train_docs_clone.pop(ind) for ind in tempExcludedSamples]
+    [train_y_clone.pop(ind) for ind in tempExcludedSamples]
+    train_words_clone = extract_doc_terms_in_docs(train_docs_clone)
+    wordsToRemove = train_words_set - (intersection_set | shortTextsWordsSet)
+    for w in train_words_set:
+        for ind in range(len(train_words_clone)):
+            try:
+                if w in train_words_clone[ind]:
+                    train_words_clone[ind].remove(w)
+            except:
+                pdb.set_trace()
+#     [[train_words_clone[ind].remove(w) for ind in range(len(train_words_clone))] for w in train_words_set]
+    
+    v = DictVectorizer()
 
+    X = v.fit_transform(Counter(f) for f in train_words_clone)
+    
+    X_new = SelectKBest(chi2, k=30000).fit(X.A, train_y_clone)
+    kBestWords = sorted(v.feature_names_, key = X_new.scores_, reverse = True)[:30000]
+    
+    
+    with open('kBestWords.txt', 'w') as f:
+        f.write('\t'.join(kBestWords))
     
     
     
