@@ -32,18 +32,20 @@ if __name__ == '__main__':
     train_testX = getFinedData(finedTrainDocTerms)
     trainX, testX = train_testX[:len(trainY)], train_testX[len(trainY):]
     
-    x_train,x_test,y_train,y_test = train_test_split(trainX, trainY, test_size=0.3, random_state=0)
+    x_train,_x_test,y_train,_y_test = train_test_split(trainX, trainY, test_size=0.4, random_state=0)
+    x_valid,x_test,y_valid,y_test = train_test_split(_x_test, _y_test, test_size=0.25, random_state=0)
     
     dtrain = xgb.DMatrix(x_train, label=y_train)
-    dtest = xgb.DMatrix(x_test, label=y_test)  # label可以不要，此处需要是为了测试效果
+    dvalid = xgb.DMatrix(x_valid, label=y_valid)  # label可以不要，此处需要是为了测试效果
     param = {'max_depth':5, 'eta':0.5, 'silent':1, 'objective':'multi:softmax', 'num_class':19}  # 参数
-    evallist  = [(dtrain,'train'), (dtest,'test')]  # 这步可以不要，用于测试效果
+    evallist  = [(dtrain,'train'), (dvalid,'valid')]  # 这步可以不要，用于测试效果
     num_round = 500  # 循环次数
     bst = xgb.train(param, dtrain, num_round, evallist, feval=evalerror)
+    dtest = xgb.DMatrix(x_test)
     preds = bst.predict(dtest)
     y_test1 = [int(ele) for ele in y_test]
     preds1 = [int(ele) for ele in preds]
-    print("f1_score in test: \n", f1_score1(y_test, preds))
+    print("f1_score in test: \n", f1_score1(y_test1, preds1))
     
     dnew = xgb.DMatrix(testX)
     dnew_preds = bst.predict(dnew)
