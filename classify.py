@@ -8,82 +8,49 @@ import pdb
 from sklearn.model_selection._split import train_test_split
 import multiprocessing
 from multiprocessing.pool import Pool
-from sklearn import metrics
+from utils import *
+import xgboost as xgb
 
-def read_dat(path, isTrain = True):
-    X = []
-    Y = []
-    with open(path) as f:
-        for line in f:
-            line_tmp = line.strip().split(',')
-            X.append(float(ele) for ele in line_tmp[0].split(' '))
-            if isTrain:
-                Y.append(int(line_tmp[-1]))
-    
-    if isTrain:
-        return X, Y
-    return X
+def evalerror(preds, dtrain):
+    labels = dtrain.get_label()
+    return 'f1', 1 - f1_score1(labels, preds)
 
-def mean_inner_product(X, y):
-    s = 0
-    length = len(X)
-    for x in X:
-        s += sum([i*j for i,j in zip(x,y)])
-    return s / length
-
-def getClassDict(trainY):
-    classDict = {}
-    
-    for ind, i in enumerate(trainY):
-        if i not in classDict:
-            classDict[i] = [ind]
-        else:
-            classDict[i].append(ind)
-            
-    return classDict
-
-def getTrainGroup(trainX, classDict):
-    sortedKeys = sorted([key for key in classDict])
-    trainXX = []
-    for key in sortedKeys:
-        group = []
-        for ind in classDict[key]:
-            group.append(trainX[ind])
-        trainXX.append(group)
-    return trainXX
-
-def predictY(X, trainX, clsDict):
-    keyLst = sorted([key for key in clsDict])
-    trainXX = getTrainGroup(trainX, clsDict)
-    
-    pred_y = []
-    for x in X:
-        distLst = [mean_inner_product(trainX, x) for trainX in trainXX]
-        
-        label_ind = distLst.index(min(distLst))
-        pred_y.append(keyLst[label_ind])
-    return pred_y
-
-
+def writePredTestNewToFile(preds, path):
+    with open(path, 'w', encoding = 'utf-8') as f:
+        f.write("id,class\n")
+        for ind, ele in enumerate(preds.tolist()):
+            f.write(str(ind)+","+str(int(ele)+1)+'\n')
 
 if __name__ == '__main__':
-    train_out_path = 'trainT.csv'
-    pred_out_path = 'testT.csv'
-    predY_out_path = 'testY.csv'
+    finedTrain_path = 'finedTrain.csv'
+    finedTest_path = 'finedTest.csv'
     
-    trainX, trainY = read_dat(train_out_path)
+    finedTrainDocTerms, trainY = getFinedDocs(finedTrain_path, lines = -1)
+    finedTestDocTerms = getFinedDocs(finedTest_path, isTrain=False)
+    finedTrainDocTerms.extend(finedTestDocTerms)
+    
+    train_testX = getFinedData(finedTrainDocTerms)
+    trainX, testX = train_testX[:len(trainY)], train_testX[len(trainY):]
+    
     x_train,x_test,y_train,y_test = train_test_split(trainX, trainY, test_size=0.3, random_state=0)
-    predX = read_dat(pred_out_path, False)
+    
+    dtrain = xgb.DMatrix(x_train, label=y_train)
+    dtest = xgb.DMatrix(x_test, label=y_test)  # label可以不要，此处需要是为了测试效果
+    param = {'max_depth':5, 'eta':0.5, 'silent':1, 'objective':'multi:softmax', 'num_class':19}  # 参数
+    evallist  = [(dtrain,'train'), (dtest,'test')]  # 这步可以不要，用于测试效果
+    num_round = 500  # 循环次数
+    bst = xgb.train(param, dtrain, num_round, evallist, feval=evalerror)
+    preds = bst.predict(dtest)
+    y_test1 = [int(ele) for ele in y_test]
+    preds1 = [int(ele) for ele in preds]
+    print("f1_score in test: \n", f1_score1(y_test, preds))
+    
+    dnew = xgb.DMatrix(testX)
+    dnew_preds = bst.predict(dnew)
+    writePredTestNewToFile(dnew_preds, path = 'test_commit.csv')
     
     
-    clsDict = getClassDict(trainY)
-    pred_trainY = predictY(x_test, trainX, clsDict)
     
-    print("F1 score: %.3f" % metrics.f1_score(y_test, pred_trainY, average='weighted'))
-    
-    pred_Y = predictY(predX, trainX, clsDict)
-    with open(predY_out_path, 'w') as f:
-        f.write('\n'.join(str(ele) for ele in pred_Y))
     
     
     

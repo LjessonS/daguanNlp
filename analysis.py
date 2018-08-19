@@ -33,28 +33,7 @@ def getTempExcludedSamples(train_path, length = 30):
             tempExcludedSamples.append(ind)
     return tempExcludedSamples
 
-
-if __name__ == '__main__':
-    debug = 1
-    if debug == 1:
-        train_path = 'train_set.csv'
-        test_path = 'test_set.csv'
-    elif debug == 0:
-        train_path = 'train_set_sample.csv'
-        test_path = 'test_set_sample.csv'
-    elif debug == 3:
-        train_path = r'D:\VM_Share\work\codeSpace\nlp\daguan\new_data\train_set.csv'
-        test_path = r'D:\VM_Share\work\codeSpace\nlp\daguan\new_data\test_set.csv'
-    else:
-        train_path = r'D:\VM_Share\data\home\new_data\train_set.csv'
-        test_path = r'D:\VM_Share\data\home\new_data\test_set.csv'
-    
-    #打印训练集与测试集文本最长、最短词数，并绘制训练集与测试集文本词个数分布
-#     analyseLength(train_path, test_path)
-#     for len_ in range(17, 40, 3):
-#         getUniqWord(train_path, test_path, len_)
-#         print("---------------------------------------------------")
-    
+def selectKBestWords(train_path, test_path, lengthOfShortTextToKeep = 30, numBestKwords = 30000):
     train_docs, train_y = extract_docs(train_path)
     test_docs = extract_docs(test_path, isTrain = False)
     #     pdb.set_trace()
@@ -76,45 +55,105 @@ if __name__ == '__main__':
     intersection_set = train_words_set.intersection(test_words_set)
     print("train and test has %d same words in total" % len(intersection_set))
     
-#     trainWordsIntersectToTestCountDict = countIntersectionWordsInDocs(train_docs, intersection_set); del train_docs
-#     print("intersection words between train and test has %d total words in train" % sum([trainWordsIntersectToTestCountDict[w] for w in trainWordsIntersectToTestCountDict]))
-#     testWordsIntersectToTestCountDict = countIntersectionWordsInDocs(test_docs, intersection_set)
-#     print("intersection words between train and test has %d total words in test" % sum([testWordsIntersectToTestCountDict[w] for w in testWordsIntersectToTestCountDict]))
-
-    shortTextsWordsSet = keepUniqWordsOfShortTexts(train_path, test_path)
+    length = lengthOfShortTextToKeep
+    shortTextsWordsSet = keepUniqWordsOfShortTexts(train_path, test_path, length)
     
-#     pdb.set_trace()
     intersectionWordsBetweenShortTestAndIntersectionSet = intersection_set.intersection(shortTextsWordsSet)
     print("short texts has %d uniq words in total" % len(shortTextsWordsSet))
     print("intersection words between short text and intersection set has %d words in total." % len(intersectionWordsBetweenShortTestAndIntersectionSet))
 
-    candidateFeatures = intersection_set - shortTextsWordsSet
-    tempExcludedSamples = getTempExcludedSamples(train_path)
+#     candidateFeatures = intersection_set - shortTextsWordsSet
+    
+    tempExcludedSamples = getTempExcludedSamples(train_path, length)
     train_docs_clone, train_y_clone = deepcopy(train_docs), deepcopy(train_y)
     [train_docs_clone.pop(ind) for ind in tempExcludedSamples]
     [train_y_clone.pop(ind) for ind in tempExcludedSamples]
+
     train_words_clone = extract_doc_terms_in_docs(train_docs_clone)
     wordsToRemove = train_words_set - (intersection_set | shortTextsWordsSet)
-    for w in train_words_set:
-        for ind in range(len(train_words_clone)):
-            try:
-                if w in train_words_clone[ind]:
-                    train_words_clone[ind].remove(w)
-            except:
-                pdb.set_trace()
+    corpusToSelectWords = []
+    print("start to remove words------------------------")
+    for doc_terms in train_words_clone:
+        temp = []
+        for term in doc_terms:
+            if term in wordsToRemove:
+                continue
+            temp.append(term)
+        corpusToSelectWords.append(temp)
 #     [[train_words_clone[ind].remove(w) for ind in range(len(train_words_clone))] for w in train_words_set]
+    print("finish word-removing process---------------")
     
     v = DictVectorizer()
 
-    X = v.fit_transform(Counter(f) for f in train_words_clone)
+    print("start to generate doc words count---------------")
+    X = v.fit_transform(Counter(f) for f in corpusToSelectWords)
     
-    X_new = SelectKBest(chi2, k=30000).fit(X.A, train_y_clone)
-    kBestWords = sorted(v.feature_names_, key = X_new.scores_, reverse = True)[:30000]
+    print("start to run chi2 words selection---------------")
     
+    X_new = SelectKBest(chi2, k=numBestKwords).fit(X, train_y_clone)
+    kBestWordsIndx = sorted(range(len(X_new.scores_)), key = lambda k: X_new.scores_[k], reverse = True)
+    kBestWords = [v.feature_names_[ind] for ind in kBestWordsIndx][:numBestKwords]
     
-    with open('kBestWords.txt', 'w') as f:
-        f.write('\t'.join(kBestWords))
+    lastWordsToKeep = set(kBestWords) | shortTextsWordsSet
+    return lastWordsToKeep
+#     with open('kBestWords.txt', 'w') as f:
+#         f.write('\t'.join(kBestWords))
+
+def extract_doc_terms_within_wordsSet(doc_terms, lastWordsToKeep):
+    fined_doc_terms = []
+    for d_t in doc_terms:
+        temp = []
+        for term in d_t:
+            if term in lastWordsToKeep:
+                temp.append(term)
+        fined_doc_terms.append(temp)
+    return fined_doc_terms
+
+def generateFinedTrainAndTest(train_path, test_path, lengthOfShortTextToKeep = 30, numBestKwords = 30000):
+    lastWordsToKeep = selectKBestWords(train_path, test_path, lengthOfShortTextToKeep = 30, numBestKwords = 30000)
+    train_docs, train_y = extract_docs(train_path)
+    train_doc_terms = extract_doc_terms_in_docs(train_docs)
     
+    finedTrain = extract_doc_terms_within_wordsSet(train_doc_terms, lastWordsToKeep)
+    assert(len(train_docs) == len(finedTrain))
     
+    test_docs = extract_docs(test_path, isTrain = False)
+    test_doc_terms = extract_doc_terms_in_docs(test_docs)
+    finedTest = extract_doc_terms_within_wordsSet(test_doc_terms, lastWordsToKeep)
+    assert(len(test_docs) == len(finedTest))
+
+    with open("finedTrain.csv", 'w') as f:
+        for doc_terms, y in zip(train_doc_terms, train_y):
+            f.write(' '.join(doc_terms)+','+y+'\n')
+    with open("finedTest.csv", 'w') as f:
+        for doc_terms in finedTest:
+            f.write(' '.join(doc_terms)+'\n')
+            
+    
+if __name__ == '__main__':
+    debug = 1
+    if debug == 0:
+        train_path = 'train_set_sample.csv'
+        test_path = 'test_set_sample.csv'
+    if debug == 1:
+        train_path = 'train_set.csv'
+        test_path = 'test_set.csv'
+    if debug == 2:
+        train_path = r'D:\VM_Share\data\home\new_data\train_set.csv'
+        test_path = r'D:\VM_Share\data\home\new_data\test_set.csv'
+    if debug == 3:
+        train_path = r'D:\VM_Share\work\codeSpace\nlp\daguan\new_data\train_set.csv'
+        test_path = r'D:\VM_Share\work\codeSpace\nlp\daguan\new_data\test_set.csv'
+    if debug == 4:
+        train_path = r'D:\VM_Share\data\home\new_data\train_set_3000.csv'
+        test_path = r'D:\VM_Share\data\home\new_data\test_set_3000.csv'
+    
+    #打印训练集与测试集文本最长、最短词数，并绘制训练集与测试集文本词个数分布
+#     analyseLength(train_path, test_path)
+#     for len_ in range(17, 40, 3):
+#         getUniqWord(train_path, test_path, len_)
+#         print("---------------------------------------------------")
+    
+    generateFinedTrainAndTest(train_path, test_path, numBestKwords = 300000)
     
     

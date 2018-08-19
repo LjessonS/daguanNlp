@@ -5,6 +5,42 @@ Created on 2018骞�8鏈�4鏃� 涓嬪崍7:59:37
 @author: liusheng1
 '''
 
+def getFinedDocs(path, isTrain = True, lines = 4000):
+    doc_terms = []
+    y = []
+    with open(path, encoding = 'utf-8') as f:
+        if isTrain:
+            for ind, line in enumerate(f):
+                line_tmp = line.strip().split(",")
+                doc_terms.append(line_tmp[0].split(' '))
+                y.append(int(line_tmp[-1])-1)
+                if (ind+1) == lines and lines != -1:
+                    break
+        else:
+            for line in f:
+                line_tmp = line.strip().split(' ')
+                doc_terms.append(line_tmp)
+    if isTrain:
+        return doc_terms, y
+    else:
+        return doc_terms
+
+def getFinedData(docTerms):
+    from sklearn.feature_extraction import DictVectorizer
+    from collections import Counter, OrderedDict
+    v = DictVectorizer()
+
+    X = v.fit_transform(Counter(f) for f in docTerms)
+    return X
+
+
+def f1_score1(y_true, y_pred):
+    from sklearn.metrics import f1_score
+    
+    f1_arr = f1_score(y_true, y_pred, average = None)
+    return sum(f1_arr) / f1_arr.shape[0]
+
+
 def extract_docs(texts, isTrain = True):
     header = []
     docs = []
