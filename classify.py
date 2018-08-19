@@ -38,7 +38,7 @@ if __name__ == '__main__':
     dtest = xgb.DMatrix(x_test, label=y_test)  # label可以不要，此处需要是为了测试效果
     param = {'max_depth':5, 'eta':0.5, 'silent':1, 'objective':'multi:softmax', 'num_class':19}  # 参数
     evallist  = [(dtrain,'train'), (dtest,'test')]  # 这步可以不要，用于测试效果
-    num_round = 500  # 循环次数
+    num_round = 2000  # 循环次数
     bst = xgb.train(param, dtrain, num_round, evallist, feval=evalerror)
     preds = bst.predict(dtest)
     y_test1 = [int(ele) for ele in y_test]
